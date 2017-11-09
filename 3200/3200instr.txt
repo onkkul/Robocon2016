@@ -1,0 +1,7 @@
+1. do not solder the 3200 pins for not more than 5 sec.
+2. also dont touch the solder tip to any part other than pins.
+3. max current not more than 2 amp.
+4. check saturation conditions.
+5. use 0.01uF-0.1uF capasitor with the power source.
+6. all input pins must be connected, not to be kept floating
+7. distance between the sensor and the proccesor must not be greater than 12 inches.

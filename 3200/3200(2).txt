@@ -1,0 +1,179 @@
+#include <TimerOne.h>
+
+#define S0     6
+#define S1     5
+#define S2     4
+#define S3     3
+#define OUT    2
+
+int   g_count = 0;    // count the frequecy
+int   g_array[3];     // store the RGB value
+int   g_flag = 0;     // filter of RGB queue
+float g_SF[3];        // save the RGB Scale factor
+
+// Init TSC230 and setting Frequency.
+void TSC_Init()
+{
+  pinMode(S0, OUTPUT);
+  pinMode(S1, OUTPUT);
+  pinMode(S2, OUTPUT);
+  pinMode(S3, OUTPUT);
+  pinMode(OUT, INPUT);
+
+  digitalWrite(S0, LOW);  // OUTPUT FREQUENCY SCALING 2%
+  digitalWrite(S1, HIGH); 
+}
+
+// Select the filter color 
+void TSC_FilterColor(int Level01, int Level02)
+{
+  if(Level01 != 0)
+    Level01 = HIGH;
+
+  if(Level02 != 0)
+    Level02 = HIGH;
+
+  digitalWrite(S2, Level01); 
+  digitalWrite(S3, Level02); 
+}
+
+void TSC_Count()
+{
+  g_count ++ ;
+}
+
+void TSC_Callback()
+{
+  switch(g_flag)
+  {
+    case 0: 
+         TSC_WB(LOW, LOW);              //Filter without Red
+         break;
+    case 1:
+         g_array[0] = g_count;
+         TSC_WB(HIGH, HIGH);            //Filter without Green
+         break;
+    case 2:
+         g_array[1] = g_count;
+         TSC_WB(LOW, HIGH);             //Filter without Blue
+         break;
+    case 3:
+         g_array[2] = g_count;
+         TSC_WB(HIGH, LOW);             //Clear(no filter)   
+         break;
+   default:
+         g_count = 0;
+         break;
+  }
+}
+
+void TSC_WB(int Level0, int Level1)      //White Balance
+{
+  g_count = 0;
+  g_flag ++;
+  TSC_FilterColor(Level0, Level1);
+  Timer1.setPeriod(1000000);             // set 1s period
+}
+
+void setup()
+{
+  TSC_Init();
+  Serial.begin(115200);
+  Timer1.initialize();             // defaulte is 1s
+  Timer1.attachInterrupt(TSC_Callback);  
+  attachInterrupt(0, TSC_Count, RISING);  
+
+  delay(4000);
+
+  for(int i=0; i<3; i++)
+    Serial.println(g_array[i]);
+
+  g_SF[0] = 255.0/ g_array[0];     //R Scale factor
+  g_SF[1] = 255.0/ g_array[1] ;    //G Scale factor
+  g_SF[2] = 255.0/ g_array[2] ;    //B Scale factor
+
+  Serial.println(g_SF[0]);
+  Serial.println(g_SF[1]);
+  Serial.println(g_SF[2]);
+}
+
+void loop()
+{
+  g_flag = 0;
+
+    int R = int(g_array[0] * g_SF[0]);
+    int G = int(g_array[1] * g_SF[1]);
+    int B = int(g_array[2] * g_SF[2]);    
+
+
+    if((R>245) && (R<265) && (G>245) && (G<265) && (B>245) && (B<265))    // White
+    {
+      Serial.println("Color is white");
+    }else if((R>24) && (R<44) && (G>56) && (G<76) && (B>95) && (B<115))  // Blue
+    {
+      Serial.println("Color is blue");
+    }else if((R>56) && (R<76) && (G>107) && (G<127) && (B>80) && (B<100))  // Green
+    {
+      Serial.println("Color is green");    
+    }else if((R>171) && (R<191) && (G>154) && (G<174) && (B>71) && (B<91))  // Yellow
+    {
+      Serial.println("Color is yellow");  
+    }else if((R>77) && (R<97) && (G>46) && (G<66) && (B>43) && (B<63))  // Brown
+    {
+      Serial.println("Color is brown");    
+    }else if((R>39) && (R<59) && (G>38) && (G<58) && (B>36) && (B<56))  // Brown dark
+    {
+      Serial.println("Color is brown dark");    
+    }else if((R>20) && (R<40) && (G>43) && (G<63) && (B>48) && (B<68))  // Turkis
+    {
+       Serial.println("Color is turkis");   
+    }else if((R>39) && (R<59) && (G>77) && (G<97) && (B>55) && (B<75))  // Green
+    {
+       Serial.println("Color is green");   
+    }else
+    {
+      Serial.print("Red = ");
+      Serial.println(R);
+      Serial.print("Green = ");
+      Serial.println(G);
+      Serial.print("Blue = ");
+      Serial.println(B);
+
+    };
+
+   delay(4000);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+You can increase the frequency (x10) by setting S0 HIGH and S1 LOW.
+Then you can change the timerone frequency from once a second to once every 100ms (Timer1.setPeriod(100000);).
+Then you can change your delay to delay(400).
+PS I think you only need to wait for a bit over 3 timerone cycles, so delay(350) should also work.
